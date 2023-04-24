@@ -21,7 +21,7 @@ public class TestLauncher {
 //                .selectors(DiscoverySelectors.selectClass(UserServiceTest.class))
                 .selectors(DiscoverySelectors.selectPackage("com.dmdev.junit.service"))
                 .filters(
-                        TagFilter.excludeTags("login")
+                        TagFilter.excludeTags("login")  // Запускает только тесты помеченные @Tag("login")
                 )
                 .build();
         launcher.execute(request, summaryGeneratingListener);
