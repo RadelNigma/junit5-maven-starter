@@ -3,12 +3,7 @@ package com.dmdev.junit.service;
 import com.dmdev.junit.dto.User;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.collection.IsMapContaining;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 
 import java.util.Map;
 import java.util.Optional;
@@ -17,6 +12,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("fast")
+@Tag("user")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class UserServiceTest {
 
@@ -57,6 +54,7 @@ public class UserServiceTest {
     }
 
     @Test
+    @Tag("login")
     void loginSuccessIfUserExist() {
         userService.add(IVAN);
         Optional<User> maybeUser = userService.login(IVAN.getUserName(),IVAN.getPassword());
@@ -68,6 +66,7 @@ public class UserServiceTest {
     }
 
     @Test
+    @Tag("login")
     void throwExceptionIfUsernameOrPasswordIsNull() {
         assertAll(
                 () -> {
@@ -85,6 +84,7 @@ public class UserServiceTest {
 
        Map<Integer,User > users =  userService.getAllConvertedById();
 
+
         MatcherAssert.assertThat(users, IsMapContaining.hasKey(IVAN.getId()));
 
        assertAll(
@@ -94,6 +94,7 @@ public class UserServiceTest {
     }
 
     @Test
+    @Tag("login")
     void loginFailIfPasswordIsNotCorrect() {
         userService.add(IVAN);
         Optional<User> maybeUser = userService.login(IVAN.getUserName(), "dummy");
@@ -102,6 +103,7 @@ public class UserServiceTest {
     }
 
     @Test
+    @Tag("login")
     void loginFailIfUserDoesNotExist() {
         userService.add(IVAN);
         Optional<User> maybeUser = userService.login("dummy", IVAN.getPassword());
