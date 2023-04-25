@@ -4,23 +4,11 @@ import com.dmdev.junit.dto.User;
 import com.dmdev.junit.paramresolver.UserServiceParamResolver;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.collection.IsMapContaining;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvFileSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Map;
 import java.util.Optional;
@@ -34,14 +22,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("user")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.DisplayName.class)
-@ExtendWith(UserServiceParamResolver.class)
+@ExtendWith({
+        UserServiceParamResolver.class
+        })
 public class UserServiceTest {
 
     private static final User IVAN = User.of(1, "Ivan", "123");
     private static final User PETR = User.of(2, "Petr", "111");
     private UserService userService;
 
-    UserServiceTest(TestInfo testInfo) {
+    public UserServiceTest(TestInfo testInfo) {
         System.out.println();
     }
 
@@ -132,28 +122,6 @@ public class UserServiceTest {
             );
         }
 
-        @ParameterizedTest
-//        @ArgumentsSource()
-//        @NullSource
-//        @EmptySource
-//        @NullAndEmptySource
-//        @ValueSource(strings = {
-//                "Ivan", "Petr"
-//        })
-//        @EnumSource
-//        @MethodSource("com.dmdev.junit.service.UserServiceTest#getArgumentForLoginTest")
-        @CsvFileSource(resources = "/login-test-data.csv", delimiter = ',', numLinesToSkip = 1)
-//        @CsvSource({
-//                "Ivan,123",
-//                "Petr,111"
-//        })
-        void loginParametrizedTest(String username, Integer password) {
-            userService.add(IVAN, PETR);
-
-            var maybeUser = userService.login(username, null);
-            assertThat(maybeUser).isEqualTo(null);
-        }
-
         @Test
         void loginFailIfPasswordIsNotCorrect() {
             userService.add(IVAN);
@@ -169,11 +137,31 @@ public class UserServiceTest {
 
             assertTrue(maybeUser.isEmpty());
         }
+        @ParameterizedTest(name = "{arguments} test")
+//        @ArgumentsSource()
+//        @NullSource
+//        @EmptySource
+//        @NullAndEmptySource
+//        @ValueSource(strings = {
+//                "Ivan", "Petr"
+//        })
+//        @EnumSource
+//        @CsvFileSource(resources = "/login-test-data.csv", delimiter = ',', numLinesToSkip = 1)
+//        @CsvSource({
+//                "Ivan,123",
+//                "Petr,111"
+//        })
+        @MethodSource("com.dmdev.junit.service.UserServiceTest#getArgumentsForLoginTest")
+        @DisplayName("login param test")
+        void loginParametrizedTest(String username, String password, Optional<User> user) {
+            userService.add(IVAN, PETR);
 
-
+            var maybeUser = userService.login(username, password);
+            assertThat(maybeUser).isEqualTo(user);
+        }
     }
 
-    static Stream<Arguments> getArgumentForLoginTest() {
+    static Stream<Arguments> getArgumentsForLoginTest() {
         return Stream.of(
                 Arguments.of("Ivan", "123", Optional.of(IVAN)),
                 Arguments.of("Petr", "111", Optional.of(PETR)),
@@ -181,4 +169,5 @@ public class UserServiceTest {
                 Arguments.of("dummy", "123", Optional.empty())
         );
     }
+
 }
