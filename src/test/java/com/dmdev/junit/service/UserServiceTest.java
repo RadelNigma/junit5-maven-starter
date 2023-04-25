@@ -4,11 +4,27 @@ import com.dmdev.junit.dto.User;
 import com.dmdev.junit.paramresolver.UserServiceParamResolver;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.collection.IsMapContaining;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvFileSource;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
@@ -26,7 +42,7 @@ public class UserServiceTest {
     private UserService userService;
 
     UserServiceTest(TestInfo testInfo) {
-         System.out.println();
+        System.out.println();
     }
 
     @BeforeAll
@@ -47,7 +63,7 @@ public class UserServiceTest {
         System.out.println("Test 1: " + this);
         var users = userService.getAll();
 
-        MatcherAssert.assertThat(users,  empty());
+        MatcherAssert.assertThat(users, empty());
         assertTrue(users.isEmpty(), "User list should be empty!");
     }
 
@@ -66,17 +82,17 @@ public class UserServiceTest {
 
     @Test
     void usersConvertedToMapById() {
-        userService.add(IVAN,PETR);
+        userService.add(IVAN, PETR);
 
-       Map<Integer,User > users =  userService.getAllConvertedById();
+        Map<Integer, User> users = userService.getAllConvertedById();
 
 
         MatcherAssert.assertThat(users, IsMapContaining.hasKey(IVAN.getId()));
 
-       assertAll(
-               () -> assertThat(users).containsKeys(IVAN.getId(), PETR.getId()),
-               () -> assertThat(users).containsValues(IVAN,PETR)
-       );
+        assertAll(
+                () -> assertThat(users).containsKeys(IVAN.getId(), PETR.getId()),
+                () -> assertThat(users).containsValues(IVAN, PETR)
+        );
     }
 
     @AfterEach
@@ -96,7 +112,7 @@ public class UserServiceTest {
         @Test
         void loginSuccessIfUserExist() {
             userService.add(IVAN);
-            Optional<User> maybeUser = userService.login(IVAN.getUserName(),IVAN.getPassword());
+            Optional<User> maybeUser = userService.login(IVAN.getUserName(), IVAN.getPassword());
 
             assertThat(maybeUser).isPresent();
             maybeUser.ifPresent(user -> assertThat(user).isEqualTo(IVAN));
@@ -112,8 +128,30 @@ public class UserServiceTest {
                                 "login should throw exception on null username");
                         assertThat(exception.getMessage()).isEqualTo("username or password is null");
                     },
-                    () -> assertThrows(IllegalArgumentException.class, () -> userService.login("dummy", null),"login should throw exception on null username")
+                    () -> assertThrows(IllegalArgumentException.class, () -> userService.login("dummy", null), "login should throw exception on null username")
             );
+        }
+
+        @ParameterizedTest
+//        @ArgumentsSource()
+//        @NullSource
+//        @EmptySource
+//        @NullAndEmptySource
+//        @ValueSource(strings = {
+//                "Ivan", "Petr"
+//        })
+//        @EnumSource
+//        @MethodSource("com.dmdev.junit.service.UserServiceTest#getArgumentForLoginTest")
+        @CsvFileSource(resources = "/login-test-data.csv", delimiter = ',', numLinesToSkip = 1)
+//        @CsvSource({
+//                "Ivan,123",
+//                "Petr,111"
+//        })
+        void loginParametrizedTest(String username, Integer password) {
+            userService.add(IVAN, PETR);
+
+            var maybeUser = userService.login(username, null);
+            assertThat(maybeUser).isEqualTo(null);
         }
 
         @Test
@@ -131,5 +169,16 @@ public class UserServiceTest {
 
             assertTrue(maybeUser.isEmpty());
         }
+
+
+    }
+
+    static Stream<Arguments> getArgumentForLoginTest() {
+        return Stream.of(
+                Arguments.of("Ivan", "123", Optional.of(IVAN)),
+                Arguments.of("Petr", "111", Optional.of(PETR)),
+                Arguments.of("Petr", "dummy", Optional.empty()),
+                Arguments.of("dummy", "123", Optional.empty())
+        );
     }
 }
