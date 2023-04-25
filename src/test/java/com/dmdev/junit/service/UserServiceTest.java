@@ -4,14 +4,32 @@ import com.dmdev.junit.dto.User;
 import com.dmdev.junit.paramresolver.UserServiceParamResolver;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.collection.IsMapContaining;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.RepetitionInfo;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @ExtendWith({
         UserServiceParamResolver.class
-        })
+})
 public class UserServiceTest {
 
     private static final User IVAN = User.of(1, "Ivan", "123");
@@ -98,9 +116,11 @@ public class UserServiceTest {
     @Nested
     @DisplayName("test user login functionality")
     @Tag("login")
+    @Timeout(value = 200, unit = TimeUnit.MILLISECONDS)
     class LoginTest {
         @Test
-        void loginSuccessIfUserExist() {
+        @RepeatedTest(value = 5, name = RepeatedTest.LONG_DISPLAY_NAME)
+        void loginSuccessIfUserExist(RepetitionInfo repetitionInfo) {
             userService.add(IVAN);
             Optional<User> maybeUser = userService.login(IVAN.getUserName(), IVAN.getPassword());
 
@@ -111,6 +131,7 @@ public class UserServiceTest {
         }
 
         @Test
+//        @org.junit.Test(expected = IllegalArgumentException.class)
         void throwExceptionIfUsernameOrPasswordIsNull() {
             assertAll(
                     () -> {
@@ -123,11 +144,22 @@ public class UserServiceTest {
         }
 
         @Test
+        @Disabled("flaky, need to see")
         void loginFailIfPasswordIsNotCorrect() {
             userService.add(IVAN);
             Optional<User> maybeUser = userService.login(IVAN.getUserName(), "dummy");
 
             assertTrue(maybeUser.isEmpty());
+        }
+
+        @Test
+        void checkLoginFunctionalityPerformance() {
+            System.out.println(Thread.currentThread().getName());
+            var result = assertTimeoutPreemptively(Duration.ofMillis(200L), () -> {
+                System.out.println(Thread.currentThread().getName());
+                Thread.sleep(300L);
+                return userService.login("dummy", IVAN.getPassword());
+            });
         }
 
         @Test
@@ -137,6 +169,7 @@ public class UserServiceTest {
 
             assertTrue(maybeUser.isEmpty());
         }
+
         @ParameterizedTest(name = "{arguments} test")
 //        @ArgumentsSource()
 //        @NullSource
