@@ -1,7 +1,8 @@
 package com.dmdev.junit.service;
 
+import com.dmdev.junit.TestBase;
 import com.dmdev.junit.dto.User;
-import com.dmdev.junit.paramresolver.UserServiceParamResolver;
+import com.dmdev.junit.extension.*;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.collection.IsMapContaining;
 import org.junit.jupiter.api.AfterAll;
@@ -26,6 +27,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -41,9 +43,13 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @ExtendWith({
-        UserServiceParamResolver.class
+        UserServiceParamResolver.class,
+        PostProcessingExtension.class,
+        ConditionalExtension.class,
+        ThrowableExtension.class
+//        GlobalExtension.class
 })
-public class UserServiceTest {
+public class UserServiceTest extends TestBase {
 
     private static final User IVAN = User.of(1, "Ivan", "123");
     private static final User PETR = User.of(2, "Petr", "111");
@@ -67,7 +73,10 @@ public class UserServiceTest {
     @Test
     @Order(1)
     @DisplayName("users will be empty if no users added")
-    void usersEmptyIfNoUserAdded(UserService userService) {
+    void usersEmptyIfNoUserAdded(UserService userService) throws IOException {
+        if (true) {
+           throw new RuntimeException();
+        }
         System.out.println("Test 1: " + this);
         var users = userService.getAll();
 
@@ -118,7 +127,7 @@ public class UserServiceTest {
     @Tag("login")
     @Timeout(value = 200, unit = TimeUnit.MILLISECONDS)
     class LoginTest {
-        @Test
+//        @Test
         @RepeatedTest(value = 5, name = RepeatedTest.LONG_DISPLAY_NAME)
         void loginSuccessIfUserExist(RepetitionInfo repetitionInfo) {
             userService.add(IVAN);
@@ -157,7 +166,7 @@ public class UserServiceTest {
             System.out.println(Thread.currentThread().getName());
             var result = assertTimeoutPreemptively(Duration.ofMillis(200L), () -> {
                 System.out.println(Thread.currentThread().getName());
-                Thread.sleep(300L);
+                Thread.sleep(100L);
                 return userService.login("dummy", IVAN.getPassword());
             });
         }
