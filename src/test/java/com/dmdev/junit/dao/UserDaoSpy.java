@@ -14,6 +14,7 @@ public class UserDaoSpy extends UserDao {
 
     @Override
     public boolean delete(Integer userId) {
+//        invocation++;
         return answers.getOrDefault(userId, userDao.delete(userId));
     }
 }

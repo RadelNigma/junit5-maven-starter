@@ -27,7 +27,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -39,6 +40,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @Tag("fast")
 @Tag("user")
@@ -48,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.*;
         UserServiceParamResolver.class,
         PostProcessingExtension.class,
         ConditionalExtension.class,
+        MockitoExtension.class
 //        ThrowableExtension.class
 //        GlobalExtension.class
 })
@@ -56,7 +59,11 @@ public class UserServiceTest extends TestBase {
     private static final User IVAN = User.of(1, "Ivan", "123");
     private static final User PETR = User.of(2, "Petr", "111");
 
+    @Captor
+    private ArgumentCaptor<Integer> argumentCaptor;
+    @Mock(lenient = true)
     private UserDao userDao;
+    @InjectMocks
     private UserService userService;
 
     public UserServiceTest(TestInfo testInfo) {
@@ -69,25 +76,47 @@ public class UserServiceTest extends TestBase {
     }
 
     @BeforeEach
-    void prepare() {
+    void prepare(@Mock UserDao userDao) {
         System.out.println("BeforeEach: " + this);
-        this.userDao = Mockito.spy(new UserDao());
-        this.userService = new UserService(userDao);
+        doReturn(true).when(userDao).delete(IVAN.getId());
+
+
+
+//        this.userDao = Mockito.spy(new UserDao());
+//        this.userService = new UserService(userDao);
+    }
+
+    @Test
+    void throwExceptionIfDatabaseIsNotAvailable() {
+        doThrow(RuntimeException.class).when(userDao).delete(IVAN.getId());
+        assertThrows(RuntimeException.class, () -> userService.delete(IVAN.getId()));
     }
 
     @Test
     void shouldDeleteExistedUser() {
         userService.add(IVAN);
-        Mockito.doReturn(true).when(userDao).delete(IVAN.getId());
+//        Mockito.doReturn(true).when(userDao).delete(IVAN.getId());
 //        Mockito.doReturn(true).when(userDao).delete(Mockito.any());
 
 //        Mockito.when(userDao.delete(IVAN.getId()))
 //                .thenReturn(true)
 //                .thenReturn(false);
 
+        BDDMockito.given(userDao.delete(IVAN.getId())).willReturn(true);
+
+        BDDMockito.willReturn(true).given(userDao.delete(IVAN.getId()));
+
         var deleteResult = userService.delete(IVAN.getId());
         System.out.println(userService.delete(IVAN.getId()));
         System.out.println(userService.delete(IVAN.getId()));
+
+//        var argumentCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(userDao, times(3)).delete(argumentCaptor.capture());
+//        Mockito.verifyNoInteractions();
+
+        assertThat(argumentCaptor.getValue()).isEqualTo(IVAN.getId());
+
+//        Mockito.reset(userDao);
 
         assertThat(deleteResult).isTrue();
     }
@@ -97,7 +126,7 @@ public class UserServiceTest extends TestBase {
     @DisplayName("users will be empty if no users added")
     void usersEmptyIfNoUserAdded(UserService userService) throws IOException {
         if (true) {
-           throw new RuntimeException();
+            throw new RuntimeException();
         }
         System.out.println("Test 1: " + this);
         var users = userService.getAll();
@@ -125,7 +154,6 @@ public class UserServiceTest extends TestBase {
 
         Map<Integer, User> users = userService.getAllConvertedById();
 
-
         MatcherAssert.assertThat(users, IsMapContaining.hasKey(IVAN.getId()));
 
         assertAll(
@@ -149,7 +177,7 @@ public class UserServiceTest extends TestBase {
     @Tag("login")
     @Timeout(value = 200, unit = TimeUnit.MILLISECONDS)
     class LoginTest {
-//        @Test
+        //        @Test
         @RepeatedTest(value = 5, name = RepeatedTest.LONG_DISPLAY_NAME)
         void loginSuccessIfUserExist(RepetitionInfo repetitionInfo) {
             userService.add(IVAN);
